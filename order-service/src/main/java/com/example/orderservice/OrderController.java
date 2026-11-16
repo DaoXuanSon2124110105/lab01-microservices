@@ -1,9 +1,15 @@
 package com.example.orderservice;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 import java.util.*;
 
+// Frontend (Live Server, port 5500) gọi trực tiếp Order Service nên cần bật CORS
+@CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/api/orders")
 public class OrderController {
@@ -25,10 +31,18 @@ public class OrderController {
     }
 
     @GetMapping("/product/{id}")
-    public String getProduct(@PathVariable int id) {
-        return restClient.get()
-                .uri("/api/products/{id}", id)
-                .retrieve()
-                .body(String.class);
+    public ResponseEntity<String> getProduct(@PathVariable int id) {
+        try {
+            String body = restClient.get()
+                    .uri("/api/products/{id}", id)
+                    .retrieve()
+                    .body(String.class);
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(body);
+        } catch (HttpClientErrorException.NotFound e) {
+            // Product Service trả 404 -> trả 404 về cho Client
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
     }
 }
